@@ -1,0 +1,37 @@
+#!/bin/sh
+# Standard WUSM version numbering:
+# year.month.day.commit
+#
+# This script searches all files in the git repo
+# and bumps the version number
+
+new=$(date +"%y.%m.%d.0")
+a=( ${new//./ } )
+file=$(grep -lir "Version:" *.php)
+while read -r line
+do
+    if  [[ $line == *Version:* ]];
+    then
+        old=$line
+	c=${line#Version:}
+        b=( ${c//./ } )
+        if [ ${a[0]} == ${b[0]}  ] && [ ${a[1]} == ${b[1]} ] && [ ${a[2]} == ${b[2]}  ]; then
+            # already had a commit today, just bump commit number
+            ((b[3]++))
+            new="${a[0]}.${a[1]}.${a[2]}.${b[3]}"
+        else
+            # first commit of the day
+            new="${a[0]}.${a[1]}.${a[2]}.0"
+        fi
+    fi
+done <$file
+
+find_this=$c
+replace_with=$new
+
+echo "Incrementing version from $c to $new\n"
+
+ag -l $find_this $* | xargs sed -i '' "s/$find_this/$replace_with/g"
+
+#this is kinda annoying, but it works
+git add .
